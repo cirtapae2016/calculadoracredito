@@ -90,4 +90,23 @@ function displayResults() {
     }
 }
 
+function traeMayorCreditoE() {
+    if (candidates.length === 0) return null;
+    let maxCred = Math.max.apply(Math, candidates.map(c => c.credito));
+    let MayorCreditoE = candidates.filter(c => c.credito === maxCred);
+    return MayorCreditoE;
+}
 
+function MuestraMayorCredito() {
+    const MayorCreditoE = traeMayorCreditoE();
+    let mayorCreditoDiv = document.getElementById('mayorCredito');
+    mayorCreditoDiv.innerHTML = '';
+
+    if (MayorCreditoE) {
+        MayorCreditoE.forEach(candidate => {
+            mayorCreditoDiv.innerHTML += `El préstamo más alto fue solicitado por ${candidate.nombre} y es de ${candidate.credito} <br>`;
+        });
+    } else {
+        mayorCreditoDiv.innerHTML = 'No hay candidatos para mostrar.';
+    }
+}
