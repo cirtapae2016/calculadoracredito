@@ -1,3 +1,4 @@
+let numCandidatesGlobal = 0;
 let candidates = [];
 
 class Credito {
@@ -37,8 +38,9 @@ class Credito {
 
 function askForCandidates() {
     const numCandidates = document.getElementById('numCandidates').value;
+    numCandidatesGlobal += Number(numCandidates);
 
-    for (let i = 0; i < numCandidates; i++) {
+    for (let i = candidates.length; i < candidates.length + Number(numCandidates); i++) {
         let candidateForm = document.createElement('form');
         candidateForm.innerHTML = `
             <h3>Candidato ${i + 1}</h3>
@@ -49,17 +51,10 @@ function askForCandidates() {
         `;
         document.getElementById('candidates').appendChild(candidateForm);
     }
-
-    let submitButton = document.createElement('button');
-    submitButton.innerHTML = 'Evaluar';
-    submitButton.onclick = evaluateCandidates;
-    document.getElementById('candidates').appendChild(submitButton);
 }
 
 function evaluateCandidates() {
-    const numCandidates = document.getElementById('numCandidates').value;
-
-    for (let i = 0; i < numCandidates; i++) {
+    for (let i = candidates.length; i < numCandidatesGlobal; i++) {
         let nombre = document.getElementById(`name${i}`).value;
         let sueldo = parseInt(document.getElementById(`sueldo${i}`).value);
         let credito = parseInt(document.getElementById(`credito${i}`).value);
@@ -70,6 +65,7 @@ function evaluateCandidates() {
     }
 
     displayResults();
+    guardarDatos(); // Llama a la función para guardar los datos
 }
 
 function displayResults() {
@@ -77,12 +73,12 @@ function displayResults() {
     results.innerHTML = '';
 
     for (let i = 0; i < candidates.length; i++) {
-        let resultado="";
+        let resultado = "";
         let candidateResult = document.createElement('p');
-        if (candidates[i].EstadoCredito){
-            resultado = "FELICITACIONES, " + candidates[i].nombre + " , tu credito está " + candidates[i].resultado + " y el total del credito a pagar será de: " +  candidates[i].CreditoAPagarTotal.toFixed(0);
-        }else{
-            resultado = `Que pena, ${candidates[i].nombre}: lamento informarte que tu credito está  ` + candidates[i].resultado
+        if (candidates[i].EstadoCredito) {
+            resultado = "FELICITACIONES, " + candidates[i].nombre + " , tu credito está " + candidates[i].resultado + " y el total del credito a pagar será de: " + candidates[i].CreditoAPagarTotal.toFixed(0);
+        } else {
+            resultado = `Que pena, ${candidates[i].nombre}: lamento informarte que tu credito está  ` + candidates[i].resultado;
         }
 
         candidateResult.innerHTML = `Resultado para ${candidates[i].nombre}: ${resultado}`;
@@ -98,15 +94,28 @@ function traeMayorCreditoE() {
 }
 
 function MuestraMayorCredito() {
-    const MayorCreditoE = traeMayorCreditoE();
-    let mayorCreditoDiv = document.getElementById('mayorCredito');
-    mayorCreditoDiv.innerHTML = '';
+    const MayorCreditoE = candidates.reduce((max, candidate) => (candidate.credito > max.credito) ? candidate : max, { credito: 0 });
+    document.getElementById('mayorCredito').innerHTML = `El préstamo más alto fue solicitado por ${MayorCreditoE.nombre} y es de ${MayorCreditoE.credito}`;
+}
 
-    if (MayorCreditoE) {
-        MayorCreditoE.forEach(candidate => {
-            mayorCreditoDiv.innerHTML += `El préstamo más alto fue solicitado por ${candidate.nombre} y es de ${candidate.credito} <br>`;
-        });
-    } else {
-        mayorCreditoDiv.innerHTML = 'No hay candidatos para mostrar.';
-    }
+
+function guardarDatos() {
+    localStorage.setItem('candidates', JSON.stringify(candidates));
+}
+
+function cargarDatos() {
+    // Limpiamos las secciones de candidatos y resultados
+    document.getElementById('candidates').innerHTML = '';
+    document.getElementById('results').innerHTML = '';
+
+    // Recuperamos los datos del almacenamiento local
+    const datosGuardados = JSON.parse(localStorage.getItem('candidates'));
+    candidates = datosGuardados || [];
+
+    // Mostramos los resultados
+    displayResults();
+} // Aquí estaba faltando la llave
+
+function refrescarDatos() {
+    localStorage.removeItem('candidates');
 }
