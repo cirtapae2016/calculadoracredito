@@ -37,6 +37,8 @@ class Credito {
 }
 
 function askForCandidates() {
+    document.getElementById('candidates').innerHTML = '';
+    document.getElementById('results').innerHTML = '';
     const numCandidates = document.getElementById('numCandidates').value;
     numCandidatesGlobal += Number(numCandidates);
 
