@@ -51,14 +51,7 @@ function askForCandidates() {
     numCandidatesGlobal += Number(numCandidates);
 
     for (let i = candidates.length; i < candidates.length + Number(numCandidates); i++) {
-       /* let candidateForm = document.createElement('form');
-        candidateForm.innerHTML = `
-            <h3>Candidato ${i + 1}</h3>
-            <input id="name${i}" type="text" placeholder="Nombre"><br>
-            <input id="sueldo${i}" type="number" placeholder="Remuneración mensual"><br>
-            <input id="credito${i}" type="number" placeholder="Monto de crédito"><br>
-            <input id="meses${i}" type="number" placeholder="Meses para pagar">
-        `;  */
+
         let candidateForm = document.createElement('form');
         candidateForm.innerHTML = `
         <div class="form-group">
@@ -73,21 +66,28 @@ function askForCandidates() {
     }
 }
 
+
 function obtenerTasaDeCambio() {
     return new Promise((resolve, reject) => {
-        // Aquí pondrías tu código para obtener el valor del dólar desde la API
-        // Por ejemplo, usando fetch o XMLHttpRequest
+ 
         fetch("https://mindicador.cl/api/dolar")
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('La respuesta de la red no fue correcta.');
+                }
+                return response.json();
+            })
             .then(data => {
-                const tasaDeCambio = data.serie[0].valor; // Asumiendo que el valor más reciente es el primero en la serie
+                const tasaDeCambio = data.serie && data.serie[0] ? data.serie[0].valor : 0; 
                 resolve(tasaDeCambio);
             })
             .catch(error => {
-                reject(error);
+                console.error('Ocurrió un error al obtener la tasa de cambio:', error);
+                resolve(0); 
             });
     });
 }
+
 
 
 function evaluateCandidates() {
@@ -99,7 +99,38 @@ function evaluateCandidates() {
                 let credito = parseInt(document.getElementById(`credito${i}`).value);
                 let meses = parseInt(document.getElementById(`meses${i}`).value);
 
-                // Utilizas la tasa de cambio para crear un nuevo objeto de la clase Credito
+
+                if (sueldo < 100000) {
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'La remuneración no puede ser menor a 100.000',
+                        icon: 'error',
+                        confirmButtonText: 'Entendido'
+                    });
+                    return;
+                }
+
+                if (credito < 500000) {
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'El monto del crédito no puede ser menor a 500.000',
+                        icon: 'error',
+                        confirmButtonText: 'Entendido'
+                    });
+                    return;
+                }
+
+                if (meses < 6) {
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'El tiempo mínimo del crédito no puede ser menor a 6 meses',
+                        icon: 'error',
+                        confirmButtonText: 'Entendido'
+                    });
+                    return;
+                }
+
+           
                 let candidate = new Credito(nombre, sueldo, credito, meses, tasaDeCambio);
                 candidates.push(candidate);
             }
@@ -113,25 +144,27 @@ function evaluateCandidates() {
         });
 }
 
+
 function displayResults() {
-
- 
- 
-
     let results = document.getElementById('results');
     results.innerHTML = '';
     let start = candidates.length - numCandidatesGlobal;
+
     for (let i = start; i < candidates.length; i++) {
         let resultado = "";
-        let cardHeaderClass = "bg-success text-white"; // Clase para tarjetas aprobadas
+        let cardHeaderClass = "bg-success text-white";
         let cardBodyClass = "text-success";
+
+        let creditoFormateado = `$${candidates[i].CreditoAPagarTotal.toFixed(0).toLocaleString()}`;
+        let cuotaFormateada = `$${candidates[i].cuotaMensual.toFixed(0).toLocaleString()}`;
+        let dolarFormateado = `$${candidates[i].CreditoEnDolar.toFixed(2).toLocaleString()}`;
 
         if (!candidates[i].EstadoCredito) {
             resultado = `Qué pena, ${candidates[i].nombre}: lamento informarte que tu crédito está  ` + candidates[i].resultado;
-            cardHeaderClass = "bg-danger text-white"; // Clase para tarjetas rechazadas
+            cardHeaderClass = "bg-danger text-white"; 
             cardBodyClass = "text-danger";
         } else {
-            resultado = `FELICITACIONES, ${candidates[i].nombre}, tu crédito está ${candidates[i].resultado} y el total del crédito a pagar será de: ${candidates[i].CreditoAPagarTotal.toFixed(0)}`;
+            resultado = `FELICITACIONES, ${candidates[i].nombre}, tu crédito está ${candidates[i].resultado} y el total del crédito a pagar será de: ${creditoFormateado}`;
         }
 
         let card = `
@@ -141,14 +174,15 @@ function displayResults() {
             </div>
             <div class="card-body ${cardBodyClass}">
                 <p class="card-text">${resultado}</p>
-                <p class="card-text"><strong>Cuota mensual a pagar:</strong> ${candidates[i].cuotaMensual.toFixed(0)}</p>
-                <p class="card-text"><strong>Crédito en Dólares:</strong> ${candidates[i].CreditoEnDolar.toFixed(2)}</p>
+                <p class="card-text"><strong>Cuota mensual a pagar:</strong> ${cuotaFormateada}</p>
+                <p class="card-text"><strong>Crédito en Dólares:</strong> ${dolarFormateado}</p>
             </div>
         </div>`;
 
         results.innerHTML += card;
     }
 }
+
 
 function traeMayorCreditoE() {
     if (candidates.length === 0) return null;
@@ -165,7 +199,7 @@ function MuestraMayorCredito() {
             icon: 'warning',
             confirmButtonText: 'Entendido'
         });
-        return; // Salimos de la función ya que no hay candidatos para procesar
+        return; 
     }
 
     const MayorCreditoE = candidates.reduce((max, candidate) => (candidate.credito > max.credito) ? candidate : max, { credito: 0 });
