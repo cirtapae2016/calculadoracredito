@@ -5,31 +5,28 @@
         <link href="css/styles.css" rel="stylesheet">
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Document</title>
+        <title>Calculadora de Créditos</title>
     </head>
 <body>
-
 <div class="container">   
     <h2>Calculadora de créditos</h2>
     <div class="form-group">
         <label for="numCandidates">Por favor, introduzca el número de candidatos a evaluar:</label>
-        <input class="form-control" id="numCandidates" type="number">
+        <input class="form-control" id="numCandidates" type="number" min="1">
     </div>
-  
-    <button class="btn btn-primary" onclick="askForCandidates()">Aceptar</button>
-    <button class="btn btn-success" onclick="evaluateCandidates()">Evaluar y Guardar Candidatos</button>
-    <button class="btn btn-info" onclick="cargarDatos()">Cargar datos</button>
-    <button class="btn btn-warning" onclick="MuestraMayorCredito()">Mostrar préstamo más alto</button>
-    <button class="btn btn-danger" onclick="limpiarPantalla()">Limpiar pantalla</button> <!-- Botón adicional para limpiar -->
-
+    <div class="btn-toolbar mb-3">
+        <button class="btn btn-primary" onclick="askForCandidates()">Aceptar</button>
+        <button class="btn btn-success" onclick="evaluateCandidates()">Evaluar y Guardar Candidatos</button>
+        <button class="btn btn-info" onclick="cargarDatos()">Cargar datos</button>
+        <button class="btn btn-warning" onclick="MuestraMayorCredito()">Mostrar préstamo más alto</button>
+        <button class="btn btn-danger" onclick="limpiarPantalla()">Limpiar pantalla</button>
+    </div>
 
     <div id="mayorCredito"></div>
     <div id="candidates"></div>
     <div id="results"></div>
 </div> 
 <script src="main.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
 </body>
 </html>
-
-

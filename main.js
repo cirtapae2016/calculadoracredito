@@ -1,12 +1,12 @@
 let numCandidatesGlobal = 0;
 let candidates = [];
 
-window.addEventListener('beforeunload', function() {
+window.addEventListener('beforeunload', () => {
     localStorage.removeItem('candidates');
 });
 
 class Credito {
-    constructor(nombre, sueldo, montoCredito, meses) {
+    constructor(nombre, sueldo, montoCredito, meses, tasaDeCambio) {
         this.nombre = nombre;
         this.sueldo = sueldo;
         this.credito = montoCredito;
@@ -17,6 +17,8 @@ class Credito {
         this.montoCreditoMensual = this.credito / this.meses;
         this.EndeudamientoProyectado = this.montoCreditoMensual / this.sueldo;
         this.EstadoCredito = false;
+        this.CreditoEnDolar = montoCredito / tasaDeCambio;
+        this.TasaCambio=tasaDeCambio;
         this.resultado = "Rechazado: ";
         this.cuotaMensual = (() => {
             const factor = Math.pow((1 + this.tasaActualMensual), this.meses);
@@ -38,6 +40,8 @@ class Credito {
         }
     
     }
+
+  
 }
 
 function askForCandidates() {
@@ -69,25 +73,51 @@ function askForCandidates() {
     }
 }
 
-function evaluateCandidates() {
-    for (let i = candidates.length; i < numCandidatesGlobal; i++) {
-        let nombre = document.getElementById(`name${i}`).value;
-        let sueldo = parseInt(document.getElementById(`sueldo${i}`).value);
-        let credito = parseInt(document.getElementById(`credito${i}`).value);
-        let meses = parseInt(document.getElementById(`meses${i}`).value);
-
-        let candidate = new Credito(nombre, sueldo, credito, meses);
-        candidates.push(candidate); // Agrega los candidatos recién ingresados a la variable global
-    }
-
-    document.getElementById('candidates').innerHTML = ''; // Limpia la sección de ingreso de candidatos
-
-    displayResults();
-    guardarDatos(); // Llama a la función para guardar los datos
+function obtenerTasaDeCambio() {
+    return new Promise((resolve, reject) => {
+        // Aquí pondrías tu código para obtener el valor del dólar desde la API
+        // Por ejemplo, usando fetch o XMLHttpRequest
+        fetch("https://mindicador.cl/api/dolar")
+            .then(response => response.json())
+            .then(data => {
+                const tasaDeCambio = data.serie[0].valor; // Asumiendo que el valor más reciente es el primero en la serie
+                resolve(tasaDeCambio);
+            })
+            .catch(error => {
+                reject(error);
+            });
+    });
 }
 
 
+function evaluateCandidates() {
+    obtenerTasaDeCambio()
+        .then(tasaDeCambio => {
+            for (let i = candidates.length; i < numCandidatesGlobal; i++) {
+                let nombre = document.getElementById(`name${i}`).value;
+                let sueldo = parseInt(document.getElementById(`sueldo${i}`).value);
+                let credito = parseInt(document.getElementById(`credito${i}`).value);
+                let meses = parseInt(document.getElementById(`meses${i}`).value);
+
+                // Utilizas la tasa de cambio para crear un nuevo objeto de la clase Credito
+                let candidate = new Credito(nombre, sueldo, credito, meses, tasaDeCambio);
+                candidates.push(candidate);
+            }
+
+            document.getElementById('candidates').innerHTML = '';
+            displayResults();
+            guardarDatos();
+        })
+        .catch(error => {
+            console.error("Ocurrió un error al obtener la tasa de cambio: ", error);
+        });
+}
+
 function displayResults() {
+
+ 
+ 
+
     let results = document.getElementById('results');
     results.innerHTML = '';
     let start = candidates.length - numCandidatesGlobal;
@@ -97,23 +127,24 @@ function displayResults() {
         let cardBodyClass = "text-success";
 
         if (!candidates[i].EstadoCredito) {
-            resultado = `Que pena, ${candidates[i].nombre}: lamento informarte que tu crédito está  ` + candidates[i].resultado;
+            resultado = `Qué pena, ${candidates[i].nombre}: lamento informarte que tu crédito está  ` + candidates[i].resultado;
             cardHeaderClass = "bg-danger text-white"; // Clase para tarjetas rechazadas
             cardBodyClass = "text-danger";
         } else {
-            resultado = "FELICITACIONES, " + candidates[i].nombre + " , tu crédito está " + candidates[i].resultado + " y el total del crédito a pagar será de: " + candidates[i].CreditoAPagarTotal.toFixed(0);
+            resultado = `FELICITACIONES, ${candidates[i].nombre}, tu crédito está ${candidates[i].resultado} y el total del crédito a pagar será de: ${candidates[i].CreditoAPagarTotal.toFixed(0)}`;
         }
 
         let card = `
-        <div class="card">
+        <div class="card mt-4">
             <div class="card-header ${cardHeaderClass}">
                 Resultado para ${candidates[i].nombre}
             </div>
             <div class="card-body ${cardBodyClass}">
                 <p class="card-text">${resultado}</p>
+                <p class="card-text"><strong>Cuota mensual a pagar:</strong> ${candidates[i].cuotaMensual.toFixed(0)}</p>
+                <p class="card-text"><strong>Crédito en Dólares:</strong> ${candidates[i].CreditoEnDolar.toFixed(2)}</p>
             </div>
-        </div>
-        <br>`;
+        </div>`;
 
         results.innerHTML += card;
     }
@@ -128,59 +159,50 @@ function traeMayorCreditoE() {
 
 function MuestraMayorCredito() {
     if (candidates.length === 0) {
-        let content = `
-            <div class="card text-white bg-warning text-center">
-                <div class="card-header">
-                    Información
-                </div>
-                <div class="card-body">
-                    <h5 class="card-title">No Hay Datos</h5>
-                    <p class="card-text">No hay información para mostrar. Por favor, ingrese candidatos primero.</p>
-                </div>
-            </div>
-        `;
-
-        document.getElementById('mayorCredito').innerHTML = content;
+        Swal.fire({
+            title: 'Información',
+            text: 'No hay información para mostrar. Por favor, ingrese candidatos primero.',
+            icon: 'warning',
+            confirmButtonText: 'Entendido'
+        });
         return; // Salimos de la función ya que no hay candidatos para procesar
     }
 
     const MayorCreditoE = candidates.reduce((max, candidate) => (candidate.credito > max.credito) ? candidate : max, { credito: 0 });
-    let content = `
-        <div class="card text-white bg-info text-center">
-            <div class="card-header">
-                Préstamo Más Alto
-            </div>
-            <div class="card-body">
-                <h5 class="card-title">${MayorCreditoE.nombre}</h5>
-                <p class="card-text">Este préstamo es el más alto y es de ${MayorCreditoE.credito}</p>
-            </div>
-            <div class="card-footer text-muted">
-                Otorgado por nuestra compañía
-            </div>
-        </div>
-    `;
-
-    document.getElementById('mayorCredito').innerHTML = content;
+    
+    Swal.fire({
+        title: 'Préstamo Más Alto',
+        html: `
+            <h5>${MayorCreditoE.nombre}</h5>
+            <p>Este préstamo es el más alto y es de ${MayorCreditoE.credito}</p>
+            <p class="text-muted">Otorgado por nuestra compañía</p>
+        `,
+        icon: 'info',
+        confirmButtonText: 'Genial'
+    });
 }
 
 
 
 
 function guardarDatos() {
+    console.log("Antes de guardar:", candidates);
     localStorage.setItem('candidates', JSON.stringify(candidates));
 }
 
 function cargarDatos() {
-    // Limpiamos las secciones de candidatos y resultados
+
     limpiarPantalla();
 
-    // Recuperamos los datos del almacenamiento local
+
+    console.log("Después de cargar:", candidates);
     const datosGuardados = JSON.parse(localStorage.getItem('candidates'));
+
     candidates = datosGuardados || [];
 
-    // Mostramos los resultados
+
     displayResults();
-} // Aquí estaba faltando la llave
+} 
 
 function refrescarDatos() {
     localStorage.removeItem('candidates');
